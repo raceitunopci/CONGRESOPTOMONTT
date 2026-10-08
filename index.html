@@ -4,21 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Dirigentes Puerto Montt</title>
-  
-  <!-- Tailwind CSS para Estilos -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js para Gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- FontAwesome para Iconos -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- SheetJS para exportar a Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
   <style>
     body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-    
-    /* Estilos para ocultar elementos innecesarios al imprimir o exportar a PDF */
     @media print {
       body { background-color: white; }
       .no-print { display: none !important; }
@@ -134,19 +126,6 @@
     </div>
   </div>
 
-  <!-- MODAL PARA VER DETALLE COMPLETO -->
-  <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 no-print">
-    <div class="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-      <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
-      <h2 id="modalName" class="text-xl font-bold text-emerald-800 mb-1">--</h2>
-      <p id="modalSub" class="text-xs text-gray-500 mb-4">--</p>
-      <div id="modalContent" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"></div>
-      <div class="mt-6 text-right">
-        <button onclick="closeModal()" class="bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-emerald-800">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     let rawData = [];
     let currentFilteredData = [];
@@ -158,15 +137,29 @@
 
     function cargarDatosServidor() {
       document.getElementById("syncIcon").classList.add("fa-spin");
-      document.getElementById("tableBody").innerHTML = '<tr><td colspan="7" class="text-center p-6 text-gray-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Cargando datos del servidor...</td></tr>';
       
       google.script.run
-        .withSuccessHandler(function(data) {
-          procesarDatos(data);
+        .withSuccessHandler(function(respuesta) {
           document.getElementById("syncIcon").classList.remove("fa-spin");
+          
+          // 1. Verificamos si hubo error en el servidor
+          if (respuesta.exito === false) {
+             alert("Error desde Google Sheets: " + respuesta.error);
+             return;
+          }
+          
+          // 2. Alerta de diagnóstico exitoso (te mostrará qué leyó)
+          alert("Conexión exitosa ✅\nHoja leída: " + respuesta.nombreHoja + "\nFilas encontradas: " + respuesta.filas);
+          
+          // 3. Procesamos los datos
+          try {
+            procesarDatos(respuesta.datos);
+          } catch(e) {
+            alert("Error procesando la información (revisa si las columnas coinciden): " + e.message);
+          }
         })
         .withFailureHandler(function(error) {
-          alert("Error de conexión: " + error.message);
+          alert("Error de comunicación total: " + error.message);
           document.getElementById("syncIcon").classList.remove("fa-spin");
         })
         .getSheetData();
@@ -174,9 +167,12 @@
 
     function procesarDatos(filas) {
       let parsed = [];
+      // Empezamos en 1 para saltar los encabezados
       for(let i = 1; i < filas.length; i++) {
         let cols = filas[i];
-        if(cols.length >= 10 && cols[5] && cols[5].trim() !== "") {
+        
+        // Verificamos que la fila tenga datos y que exista un nombre (columna 5)
+        if(cols.length >= 10 && cols[5] !== undefined && cols[5].trim() !== "") {
           parsed.push({
             zona: cols[1] ? cols[1].trim() : "",
             prefectura: cols[2] ? cols[2].trim() : "",
@@ -200,18 +196,21 @@
           });
         }
       }
+      
       rawData = parsed;
-      currentFilteredData = parsed; // Al inicio, no hay filtro
+      currentFilteredData = parsed; 
       initDashboard(rawData);
     }
 
     function initDashboard(data) {
+      if(data.length === 0) {
+        alert("Atención: El servidor envió los datos, pero no se encontró ninguna persona válida. Revisa si los nombres están en la columna F.");
+      }
       renderKPIs(data);
       renderCharts(data);
       renderTable(data);
     }
 
-    // Funciones de KPIs y Gráficos (iguales al anterior)
     function renderKPIs(data) {
       document.getElementById("kpi-total").innerText = data.length;
       let hombres = data.filter(d => d.genero.toUpperCase().includes("MASCULINO") || d.genero.toUpperCase() === "M").length;
@@ -233,11 +232,7 @@
 
       let regMap = {};
       data.forEach(d => { if(d.zona) regMap[d.zona] = (regMap[d.zona] || 0) + 1; });
-      chartInstances.regiones = new Chart(document.getElementById('chartRegiones'), {
-        type: 'bar',
-        data: { labels: Object.keys(regMap), datasets: [{ label: 'Dirigentes', data: Object.values(regMap), backgroundColor: '#059669' }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
+      chartInstances.regiones = new Chart(document.getElementById('chartRegiones'), { type: 'bar', data: { labels: Object.keys(regMap), datasets: [{ label: 'Dirigentes', data: Object.values(regMap), backgroundColor: '#059669' }] }, options: { responsive: true, maintainAspectRatio: false } });
 
       let transMap = {};
       data.forEach(d => {
@@ -247,24 +242,14 @@
         else t = "OTRO";
         transMap[t] = (transMap[t] || 0) + 1;
       });
-      chartInstances.transporte = new Chart(document.getElementById('chartTransporte'), {
-        type: 'doughnut',
-        data: { labels: Object.keys(transMap), datasets: [{ data: Object.values(transMap), backgroundColor: ['#3b82f6', '#8b5cf6', '#6b7280'] }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
+      chartInstances.transporte = new Chart(document.getElementById('chartTransporte'), { type: 'doughnut', data: { labels: Object.keys(transMap), datasets: [{ data: Object.values(transMap), backgroundColor: ['#3b82f6', '#8b5cf6', '#6b7280'] }] }, options: { responsive: true, maintainAspectRatio: false } });
 
       let enfMap = {};
       data.forEach(d => {
         let e = d.enfermedad;
-        if(!["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(e)) {
-          enfMap[e] = (enfMap[e] || 0) + 1;
-        }
+        if(!["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(e)) { enfMap[e] = (enfMap[e] || 0) + 1; }
       });
-      chartInstances.enfermedades = new Chart(document.getElementById('chartEnfermedades'), {
-        type: 'bar',
-        data: { labels: Object.keys(enfMap), datasets: [{ label: 'Casos Registrados', data: Object.values(enfMap), backgroundColor: '#ef4444' }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
-      });
+      chartInstances.enfermedades = new Chart(document.getElementById('chartEnfermedades'), { type: 'bar', data: { labels: Object.keys(enfMap), datasets: [{ label: 'Casos Registrados', data: Object.values(enfMap), backgroundColor: '#ef4444' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
 
       let horMap = {};
       data.forEach(d => {
@@ -273,96 +258,30 @@
         horMap[h] = (horMap[h] || 0) + 1;
       });
       let sortedHorarios = Object.entries(horMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
-      
-      chartInstances.horarios = new Chart(document.getElementById('chartHorarios'), {
-        type: 'pie',
-        data: { labels: sortedHorarios.map(h => h[0]), datasets: [{ data: sortedHorarios.map(h => h[1]), backgroundColor: ['#10b981', '#f59e0b', '#ec4899', '#6366f1', '#8b5cf6'] }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
+      chartInstances.horarios = new Chart(document.getElementById('chartHorarios'), { type: 'pie', data: { labels: sortedHorarios.map(h => h[0]), datasets: [{ data: sortedHorarios.map(h => h[1]), backgroundColor: ['#10b981', '#f59e0b', '#ec4899', '#6366f1', '#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
 
     function renderTable(data) {
       let tbody = document.getElementById("tableBody");
       tbody.innerHTML = "";
-
       if(data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">No se encontraron resultados</td></tr>';
         return;
       }
-
       data.forEach((item) => {
         let tr = document.createElement("tr");
         tr.className = "hover:bg-emerald-50 cursor-pointer transition";
-        tr.onclick = () => openModal(item);
-
         let isSana = ["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(item.enfermedad);
-        let badgeEnf = isSana 
-          ? `<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Ninguna</span>`
-          : `<span class="px-2 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs">${item.enfermedad}</span>`;
-
-        tr.innerHTML = `
-          <td class="p-3 font-semibold text-gray-800">${item.nombre}</td>
-          <td class="p-3">${item.rut}</td>
-          <td class="p-3">${item.zona}</td>
-          <td class="p-3">${item.comuna}</td>
-          <td class="p-3">${item.transporte}</td>
-          <td class="p-3">${item.fechaLlegada} ${item.horaLlegada}</td>
-          <td class="p-3">${badgeEnf}</td>
-        `;
+        let badgeEnf = isSana ? `<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Ninguna</span>` : `<span class="px-2 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs">${item.enfermedad}</span>`;
+        tr.innerHTML = `<td class="p-3 font-semibold text-gray-800">${item.nombre}</td><td class="p-3">${item.rut}</td><td class="p-3">${item.zona}</td><td class="p-3">${item.comuna}</td><td class="p-3">${item.transporte}</td><td class="p-3">${item.fechaLlegada} ${item.horaLlegada}</td><td class="p-3">${badgeEnf}</td>`;
         tbody.appendChild(tr);
       });
     }
 
     function filterTable() {
       let query = document.getElementById("searchInput").value.toLowerCase();
-      currentFilteredData = rawData.filter(d => 
-        d.nombre.toLowerCase().includes(query) ||
-        d.rut.toLowerCase().includes(query) ||
-        d.comuna.toLowerCase().includes(query) ||
-        d.zona.toLowerCase().includes(query)
-      );
+      currentFilteredData = rawData.filter(d => d.nombre.toLowerCase().includes(query) || d.rut.toLowerCase().includes(query) || d.comuna.toLowerCase().includes(query) || d.zona.toLowerCase().includes(query));
       renderTable(currentFilteredData);
-    }
-
-    // -- EXPORTAR A EXCEL --
-    function exportarExcel() {
-      if(currentFilteredData.length === 0) {
-        alert("No hay datos para exportar.");
-        return;
-      }
-      
-      // Crear hoja de Excel desde los datos filtrados
-      const ws = XLSX.utils.json_to_sheet(currentFilteredData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Dirigentes");
-      
-      // Descargar archivo
-      XLSX.writeFile(wb, "Reporte_Dirigentes_PtoMontt.xlsx");
-    }
-
-    function openModal(item) {
-      document.getElementById("modalName").innerText = item.nombre;
-      document.getElementById("modalSub").innerText = `${item.rut} | ${item.jv} (${item.comuna})`;
-
-      let content = `
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Zona / Región:</strong> ${item.zona}</div>
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Prefectura / Unidad:</strong> ${item.prefectura} - ${item.unidad}</div>
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Género / Edad:</strong> ${item.genero} (${item.edad} años)</div>
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Teléfono:</strong> ${item.telefono}</div>
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Medio Transporte:</strong> ${item.transporte} (${item.empresa})</div>
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Llegada a Pto. Montt:</strong> ${item.fechaLlegada} a las ${item.horaLlegada}</div>
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">N° Vuelo/Pasaje Ida:</strong> ${item.vueloIda}</div>
-        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">N° Vuelo/Pasaje Vuelta:</strong> ${item.vueloVuelta} (Salida: ${item.fechaSalida} ${item.horaSalida})</div>
-        <div class="bg-red-50 p-3 rounded col-span-1 md:col-span-2 border-l-4 border-red-500">
-          <strong class="text-red-700">Enfermedad de Base:</strong> ${item.enfermedad}
-        </div>
-      `;
-      document.getElementById("modalContent").innerHTML = content;
-      document.getElementById("detailModal").classList.remove("hidden");
-    }
-
-    function closeModal() {
-      document.getElementById("detailModal").classList.add("hidden");
     }
   </script>
 </body>
