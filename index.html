@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Dirigentes Vecinales - Puerto Montt</title>
+  <!-- Tailwind CSS para Estilos -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js para Gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome para Iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+  <!-- ENCABEZADO -->
+  <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-emerald-800 text-white p-6 rounded-xl shadow-lg">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold">Resumen de Asistencia - Encuentro Puerto Montt</h1>
+      <p class="text-emerald-200 text-sm mt-1">Control de Traslado, Regiones, Horarios y Salud de Dirigentes</p>
+    </div>
+    <div class="mt-4 md:mt-0 flex gap-3">
+      <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+      <button onclick="document.getElementById('csvFileInput').click()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center gap-2">
+        <i class="fa-solid fa-file-upload"></i> Cargar CSV
+      </button>
+    </div>
+  </header>
+
+  <!-- TARJETAS DE METRICAS PRINCIPALES (KPIS) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="card p-5 border-l-4 border-emerald-600">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase">Total Asistentes</p>
+          <h2 id="kpi-total" class="text-3xl font-bold text-gray-800">--</h2>
+        </div>
+        <div class="p-3 bg-emerald-100 rounded-full text-emerald-600">
+          <i class="fa-solid fa-users text-2xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-5 border-l-4 border-blue-500">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase">Género</p>
+          <p id="kpi-genero" class="text-sm font-bold text-gray-700 mt-1">Cargando...</p>
+        </div>
+        <div class="p-3 bg-blue-100 rounded-full text-blue-600">
+          <i class="fa-solid fa-venus-mars text-2xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-5 border-l-4 border-purple-500">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase">Transporte Principal</p>
+          <p id="kpi-transporte" class="text-sm font-bold text-gray-700 mt-1">Cargando...</p>
+        </div>
+        <div class="p-3 bg-purple-100 rounded-full text-purple-600">
+          <i class="fa-solid fa-plane-departure text-2xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-5 border-l-4 border-red-500">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase">Con Enfermedad Base</p>
+          <h2 id="kpi-enfermedad" class="text-3xl font-bold text-gray-800">--</h2>
+        </div>
+        <div class="p-3 bg-red-100 rounded-full text-red-600">
+          <i class="fa-solid fa-notes-medical text-2xl"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCION DE GRAFICOS -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    
+    <!-- Gráfico 1: Personas por Región/Zona -->
+    <div class="card p-6">
+      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-map-location-dot text-emerald-600"></i> Distribución por Región / Zona
+      </h3>
+      <div class="relative h-64">
+        <canvas id="chartRegiones"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfico 2: Medio de Transporte -->
+    <div class="card p-6">
+      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-bus-simple text-emerald-600"></i> Medio de Transporte (%)
+      </h3>
+      <div class="relative h-64">
+        <canvas id="chartTransporte"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfico 3: Top Enfermedades de Base -->
+    <div class="card p-6">
+      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-heart-pulse text-red-500"></i> Principales Enfermedades de Base
+      </h3>
+      <div class="relative h-64">
+        <canvas id="chartEnfermedades"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfico 4: Llegadas por Fecha / Horario -->
+    <div class="card p-6">
+      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-clock text-blue-500"></i> Flujo de Llegadas a Puerto Montt
+      </h3>
+      <div class="relative h-64">
+        <canvas id="chartHorarios"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TABLA DE DETALLE INTERACTIVA -->
+  <div class="card p-6 mb-8">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+      <h3 class="text-lg font-bold text-gray-800">Nómina Detallada de Dirigentes (Haz clic en una fila para ver detalles completos)</h3>
+      <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Buscar por Nombre, Rut, Comuna..." class="border p-2 rounded-lg w-full md:w-72 text-sm shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-gray-100 border-b text-gray-700 uppercase text-xs">
+            <th class="p-3">Nombre</th>
+            <th class="p-3">Cédula</th>
+            <th class="p-3">Región / Zona</th>
+            <th class="p-3">Comuna</th>
+            <th class="p-3">Transporte</th>
+            <th class="p-3">Llegada</th>
+            <th class="p-3">Enfermedad Base</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="divide-y text-gray-600">
+          <!-- Se llena dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL PARA VER DETALLE COMPLETO -->
+  <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <h2 id="modalName" class="text-xl font-bold text-emerald-800 mb-1">--</h2>
+      <p id="modalSub" class="text-xs text-gray-500 mb-4">--</p>
+      
+      <div id="modalContent" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <!-- Detalles insertados dinámicamente -->
+      </div>
+
+      <div class="mt-6 text-right">
+        <button onclick="closeModal()" class="bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-emerald-800">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT DE LOGICA -->
+  <script>
+    // Datos Muestra / Estructura Inicial derivada de la Planilla
+    let rawData = [
+      {
+        nombre: "ALICIA CONDORI FLORES", rut: "7.856.945-K", genero: "FEMENINO", edad: "67",
+        zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "2DA. COM. PUTRE", comuna: "PUTRE",
+        jv: "NACE CHILE NRO.15", telefono: "9-85858998", transporte: "AEREO", empresa: "LATAM",
+        vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "06:25",
+        vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "06:25",
+        enfermedad: "DIABETES"
+      },
+      {
+        nombre: "EDELCIRA CASTRO ROJAS", rut: "11.341.696-3", genero: "FEMENINO", edad: "57",
+        zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "3RA. COM. ARICA", comuna: "ARICA",
+        jv: "J.V. N° 3, BANDERA", telefono: "9-56785791", transporte: "AEREO", empresa: "LATAM",
+        vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "POR CONFIRMAR",
+        vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "POR CONFIRMAR",
+        enfermedad: "PITIRIASIS RUBRA PILARES"
+      },
+      {
+        nombre: "ROSA EUSTAQUIA MAITA QUERQUEZANA", rut: "10.124.383-4", genero: "FEMENINO", edad: "62",
+        zona: "ARICA Y PARINACOTA", prefectura: "ARICA N°1", unidad: "P.A.C.I. 4TA. COM. CHACALLUTA", comuna: "ARICA",
+        jv: "COMUNIDAD INDIGENA DE VISVIRI", telefono: "982621441", transporte: "AEREO", empresa: "LATAM AIRLINES",
+        vueloIda: "LA 187 / LA 59", fechaLlegada: "LUNES", horaLlegada: "14:30",
+        vueloVuelta: "LA 256 / LA 188", fechaSalida: "JUEVES", horaSalida: "10:00",
+        enfermedad: "NO TIENE"
+      },
+      {
+        nombre: "PABLO RAMON ORELLANA FLORES", rut: "5.450.476-4", genero: "MASCULINO", edad: "74",
+        zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE",
+        jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-90962137", transporte: "AEREO", empresa: "SKY AIRLINE",
+        vueloIda: "IQQ - PMC", fechaLlegada: "LUNES", horaLlegada: "12:00",
+        vueloVuelta: "PMC - IQQ", fechaSalida: "JUEVES", horaSalida: "16:00",
+        enfermedad: "HIPERTENSIÓN"
+      },
+      {
+        nombre: "GLORIA MIGUELINA JERIA JIMENEZ", rut: "7.349.033-2", genero: "FEMENINO", edad: "69",
+        zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE",
+        jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-92283956", transporte: "AEREO", empresa: "SKY AIRLINE",
+        vueloIda: "IQQ - PMC", fechaLlegada: "LUNES", horaLlegada: "12:00",
+        vueloVuelta: "PMC - IQQ", fechaSalida: "JUEVES", horaSalida: "16:00",
+        enfermedad: "HIPERTENSIÓN"
+      },
+      {
+        nombre: "CECILIA VIOLETA MICHEA BUSTAMANTE", rut: "10.542.973-8", genero: "FEMENINO", edad: "62",
+        zona: "ANTOFAGASTA", prefectura: "ANTOFAGASTA", unidad: "2DA. COM. ANTOFAGASTA", comuna: "ANTOFAGASTA",
+        jv: "JUNTA DE VECINOS MANUEL RODRIGUEZ", telefono: "9-59640894", transporte: "AVION", empresa: "POR CONFIRMAR",
+        vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "POR CONFIRMAR",
+        vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "POR CONFIRMAR",
+        enfermedad: "TIROIDES"
+      }
+    ];
+
+    let chartInstances = {};
+
+    document.addEventListener("DOMContentLoaded", function() {
+      initDashboard(rawData);
+    });
+
+    function initDashboard(data) {
+      renderKPIs(data);
+      renderCharts(data);
+      renderTable(data);
+    }
+
+    // 1. RENDEREAR KPIS
+    function renderKPIs(data) {
+      document.getElementById("kpi-total").innerText = data.length;
+
+      // Género
+      let hombres = data.filter(d => d.genero.toUpperCase().includes("MASCULINO") || d.genero.toUpperCase() === "M").length;
+      let mujeres = data.filter(d => d.genero.toUpperCase().includes("FEMENIN") || d.genero.toUpperCase() === "F").length;
+      let pctMujeres = Math.round((mujeres / data.length) * 100) || 0;
+      document.getElementById("kpi-genero").innerHTML = `${mujeres} Mujeres (${pctMujeres}%) <br><span class="text-xs text-gray-500">${hombres} Hombres</span>`;
+
+      // Transporte
+      let aereo = data.filter(d => d.transporte.toUpperCase().includes("AEREO") || d.transporte.toUpperCase().includes("AVION")).length;
+      let pctAereo = Math.round((aereo / data.length) * 100) || 0;
+      document.getElementById("kpi-transporte").innerHTML = `Aéreo: ${pctAereo}% (${aereo}) <br><span class="text-xs text-gray-500">Bus / Terrestre: ${100 - pctAereo}%</span>`;
+
+      // Enfermedad
+      let conEnfermedad = data.filter(d => d.enfermedad && !["NO", "NO TIENE", "NINGUNA", "NO MANTIENE"].includes(d.enfermedad.trim().toUpperCase())).length;
+      let pctEnf = Math.round((conEnfermedad / data.length) * 100) || 0;
+      document.getElementById("kpi-enfermedad").innerText = `${conEnfermedad} (${pctEnf}%)`;
+    }
+
+    // 2. RENDEREAR GRAFICOS
+    function renderCharts(data) {
+      // Destruir gráficos anteriores si existen
+      Object.values(chartInstances).forEach(chart => chart.destroy());
+
+      // Conteo Regiones
+      let regMap = {};
+      data.forEach(d => { regMap[d.zona] = (regMap[d.zona] || 0) + 1; });
+      
+      chartInstances.regiones = new Chart(document.getElementById('chartRegiones'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(regMap),
+          datasets: [{ label: 'Dirigentes', data: Object.values(regMap), backgroundColor: '#059669' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Conteo Transporte
+      let transMap = {};
+      data.forEach(d => {
+        let t = d.transporte.toUpperCase();
+        if(t.includes("AEREO") || t.includes("AVION")) t = "AÉREO";
+        else if(t.includes("BUS")) t = "BUS/TERRESTRE";
+        else t = "OTRO / POR CONFIRMAR";
+        transMap[t] = (transMap[t] || 0) + 1;
+      });
+
+      chartInstances.transporte = new Chart(document.getElementById('chartTransporte'), {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(transMap),
+          datasets: [{ data: Object.values(transMap), backgroundColor: ['#3b82f6', '#8b5cf6', '#6b7280'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Top Enfermedades
+      let enfMap = {};
+      data.forEach(d => {
+        let e = d.enfermedad ? d.enfermedad.trim().toUpperCase() : "NO ESPECIFICA";
+        if(!["NO", "NO TIENE", "NINGUNA", "NO MANTIENE"].includes(e)) {
+          enfMap[e] = (enfMap[e] || 0) + 1;
+        }
+      });
+
+      chartInstances.enfermedades = new Chart(document.getElementById('chartEnfermedades'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(enfMap),
+          datasets: [{ label: 'Casos Registrados', data: Object.values(enfMap), backgroundColor: '#ef4444' }]
+        },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+      });
+
+      // Horarios / Días de Llegada
+      let horMap = {};
+      data.forEach(d => {
+        let h = d.fechaLlegada || "POR CONFIRMAR";
+        horMap[h] = (horMap[h] || 0) + 1;
+      });
+
+      chartInstances.horarios = new Chart(document.getElementById('chartHorarios'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(horMap),
+          datasets: [{ data: Object.values(horMap), backgroundColor: ['#10b981', '#f59e0b', '#ec4899', '#6366f1'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // 3. RENDEREAR TABLA Y ACCION CLICK
+    function renderTable(data) {
+      let tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      data.forEach((item, index) => {
+        let tr = document.createElement("tr");
+        tr.className = "hover:bg-emerald-50 cursor-pointer transition";
+        tr.onclick = () => openModal(item);
+
+        let badgeEnf = ["NO", "NO TIENE", "NINGUNA", "NO MANTIENE"].includes(item.enfermedad.toUpperCase()) 
+          ? `<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Ninguna</span>`
+          : `<span class="px-2 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs">${item.enfermedad}</span>`;
+
+        tr.innerHTML = `
+          <td class="p-3 font-semibold text-gray-800">${item.nombre}</td>
+          <td class="p-3">${item.rut}</td>
+          <td class="p-3">${item.zona}</td>
+          <td class="p-3">${item.comuna}</td>
+          <td class="p-3">${item.transporte}</td>
+          <td class="p-3">${item.fechaLlegada} (${item.horaLlegada})</td>
+          <td class="p-3">${badgeEnf}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // FILTRAR TABLA EN TIEMPO REAL
+    function filterTable() {
+      let query = document.getElementById("searchInput").value.toLowerCase();
+      let filtered = rawData.filter(d => 
+        d.nombre.toLowerCase().includes(query) ||
+        d.rut.toLowerCase().includes(query) ||
+        d.comuna.toLowerCase().includes(query) ||
+        d.zona.toLowerCase().includes(query)
+      );
+      renderTable(filtered);
+    }
+
+    // MODAL DE DETALLES AL HACER CLIC
+    function openModal(item) {
+      document.getElementById("modalName").innerText = item.nombre;
+      document.getElementById("modalSub").innerText = `${item.rut} | ${item.jv} (${item.comuna})`;
+
+      let content = `
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Zona / Región:</strong> ${item.zona}</div>
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Prefectura / Unidad:</strong> ${item.prefectura} - ${item.unidad}</div>
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Género / Edad:</strong> ${item.genero} (${item.edad} años)</div>
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Teléfono:</strong> ${item.telefono}</div>
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Medio Transporte:</strong> ${item.transporte} (${item.empresa})</div>
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">Llegada a Pto. Montt:</strong> ${item.fechaLlegada} - ${item.horaLlegada}</div>
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">N° Vuelo/Pasaje Ida:</strong> ${item.vueloIda}</div>
+        <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">N° Vuelo/Pasaje Vuelta:</strong> ${item.vueloVuelta}</div>
+        <div class="bg-red-50 p-3 rounded col-span-1 md:col-span-2 border-l-4 border-red-500">
+          <strong class="text-red-700">Enfermedad de Base:</strong> ${item.enfermedad}
+        </div>
+      `;
+
+      document.getElementById("modalContent").innerHTML = content;
+      document.getElementById("detailModal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("detailModal").classList.add("hidden");
+    }
+
+    // CARGA DE ARCHIVO CSV DIRECTO
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const text = e.target.result;
+          parseCSV(text);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function parseCSV(text) {
+      let lines = text.split("\n");
+      let parsed = [];
+      for(let i = 1; i < lines.length; i++) {
+        let cols = lines[i].split(",");
+        if(cols.length >= 10) {
+          parsed.push({
+            nombre: cols[5] || "N/A",
+            rut: cols[6] || "N/A",
+            genero: cols[7] || "N/A",
+            edad: cols[8] || "N/A",
+            zona: cols[1] || "N/A",
+            prefectura: cols[2] || "N/A",
+            unidad: cols[3] || "N/A",
+            comuna: cols[4] || "N/A",
+            jv: cols[9] || "N/A",
+            telefono: cols[10] || "N/A",
+            transporte: cols[11] || "N/A",
+            empresa: cols[12] || "N/A",
+            vueloIda: cols[13] || "N/A",
+            fechaLlegada: cols[14] || "N/A",
+            horaLlegada: cols[15] || "N/A",
+            vueloVuelta: cols[16] || "N/A",
+            fechaSalida: cols[17] || "N/A",
+            horaSalida: cols[18] || "N/A",
+            enfermedad: cols[19] || "NINGUNA"
+          });
+        }
+      }
+      if(parsed.length > 0) {
+        rawData = parsed;
+        initDashboard(rawData);
+      }
+    }
+  </script>
+</body>
+</html>
