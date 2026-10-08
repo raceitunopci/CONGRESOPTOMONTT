@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- SheetJS para exportar a Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- PapaParse para leer Google Sheets en formato CSV directamente -->
+  <!-- PapaParse para leer el archivo CSV local -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <style>
@@ -33,7 +33,7 @@
   <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-emerald-800 text-white p-6 rounded-xl shadow-lg">
     <div>
       <h1 class="text-2xl md:text-3xl font-bold">Resumen de Asistencia - Puerto Montt</h1>
-      <p class="text-emerald-200 text-sm mt-1">Conectado en tiempo real desde GitHub 🟢</p>
+      <p class="text-emerald-200 text-sm mt-1">Conectado de forma estable en GitHub 🟢</p>
     </div>
     <div class="mt-4 md:mt-0 flex flex-wrap gap-3 no-print">
       <button onclick="exportarExcel()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center gap-2 transition">
@@ -128,7 +128,7 @@
           </tr>
         </thead>
         <tbody id="tableBody" class="divide-y text-gray-600">
-          <tr><td colspan="7" class="text-center p-6 text-gray-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Cargando datos desde Google Sheets...</td></tr>
+          <tr><td colspan="7" class="text-center p-6 text-gray-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Cargando datos...</td></tr>
         </tbody>
       </table>
     </div>
@@ -152,8 +152,8 @@
     let currentFilteredData = [];
     let chartInstances = {};
 
-    // Enlace directo de exportación CSV de tu Google Sheet (asegúrate de que el documento esté compartido como "Cualquier persona con el enlace")
-    const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/16YMtLEplsqrmN6TUdouhFpHOeiMvAyJVF3yW3JIAB4s/export?format=csv&gid=881868602";
+    // Lee el archivo datos.csv que subiste al mismo repositorio de GitHub
+    const sheetCsvUrl = "datos.csv";
 
     document.addEventListener("DOMContentLoaded", function() {
       cargarDatosGitHub();
@@ -171,7 +171,7 @@
         },
         error: function(err) {
           document.getElementById("syncIcon").classList.remove("fa-spin");
-          alert("Error al conectar con Google Sheets: " + err.message);
+          alert("Error al cargar el archivo de datos: " + err.message);
         }
       });
     }
@@ -271,7 +271,7 @@
 
       let horMap = {};
       data.forEach(d => {
-        let h = (d.fechaLlegada || d.horaLlegada) ? (d.fechaLlagada + " " + d.horaLlegada).trim() : "POR CONFIRMAR";
+        let h = (d.fechaLlegada || d.horaLlegada) ? (d.fechaLlegada + " " + d.horaLlegada).trim() : "POR CONFIRMAR";
         if(h === "") h = "POR CONFIRMAR";
         horMap[h] = (horMap[h] || 0) + 1;
       });
