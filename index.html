@@ -4,18 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Dirigentes Puerto Montt</title>
-  
-  <!-- Tailwind CSS para Estilos -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js para Gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- FontAwesome para Iconos -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- SheetJS para exportar a Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- PapaParse para leer el archivo CSV local -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
   <style>
     body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
@@ -29,11 +21,10 @@
 </head>
 <body class="p-4 md:p-8">
 
-  <!-- ENCABEZADO -->
   <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-emerald-800 text-white p-6 rounded-xl shadow-lg">
     <div>
       <h1 class="text-2xl md:text-3xl font-bold">Resumen de Asistencia - Puerto Montt</h1>
-      <p class="text-emerald-200 text-sm mt-1">Conectado de forma estable en GitHub 🟢</p>
+      <p class="text-emerald-200 text-sm mt-1">Panel Operativo Oficial 🟢</p>
     </div>
     <div class="mt-4 md:mt-0 flex flex-wrap gap-3 no-print">
       <button onclick="exportarExcel()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center gap-2 transition">
@@ -42,13 +33,9 @@
       <button onclick="window.print()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center gap-2 transition">
         <i class="fa-solid fa-file-pdf"></i> PDF
       </button>
-      <button onclick="cargarDatosGitHub()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center gap-2 transition border border-emerald-500">
-        <i class="fa-solid fa-rotate" id="syncIcon"></i> Actualizar
-      </button>
     </div>
   </header>
 
-  <!-- TARJETAS DE METRICAS PRINCIPALES -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="card p-5 border-l-4 border-emerald-600">
       <div class="flex justify-between items-center">
@@ -88,7 +75,6 @@
     </div>
   </div>
 
-  <!-- SECCION DE GRAFICOS -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
     <div class="card p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-emerald-600 no-print"></i> Región / Zona</h3>
@@ -108,7 +94,6 @@
     </div>
   </div>
 
-  <!-- TABLA DE DETALLE INTERACTIVA -->
   <div class="card p-6 mb-8">
     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
       <h3 class="text-lg font-bold text-gray-800">Nómina Detallada</h3>
@@ -127,14 +112,11 @@
             <th class="p-3">Enfermedad Base</th>
           </tr>
         </thead>
-        <tbody id="tableBody" class="divide-y text-gray-600">
-          <tr><td colspan="7" class="text-center p-6 text-gray-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Cargando datos...</td></tr>
-        </tbody>
+        <tbody id="tableBody" class="divide-y text-gray-600"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- MODAL PARA VER DETALLE COMPLETO -->
   <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 no-print">
     <div class="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
@@ -148,66 +130,22 @@
   </div>
 
   <script>
-    let rawData = [];
-    let currentFilteredData = [];
+    const rawData = [
+      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "2DA. COM. PUTRE", comuna: "PUTRE", nombre: "ALICIA CONDORI FLORES", rut: "7.856.945-K", genero: "FEMENINO", edad: "67", jv: "NACE CHILE NRO.15", telefono: "9-85858998", transporte: "AEREO", empresa: "LATAM", vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "", vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "", enfermedad: "DIABETES" },
+      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "3RA. COM. ARICA", comuna: "ARICA", nombre: "EDELCIRA CASTRO ROJAS", rut: "11.341.696-3", genero: "FEMENINO", edad: "57", jv: "J.V. N° 3, BANDERA", telefono: "9-56785791", transporte: "AEREO", empresa: "POR CONFIRMAR", vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "", vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "", enfermedad: "PITIRIASIS RUBRA PILARES" },
+      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "3RA. COM. ARICA", comuna: "ARICA", nombre: "YASMINA DEL PILAR VASQUEZ FLORES", rut: "12.056.564-8", genero: "FEMENINO", edad: "52", jv: "COMUNIDAD INDIGENA VALLE DE CHACA", telefono: "9-88134324", transporte: "AEREO", empresa: "POR CONFIRMAR", vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "", vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "", enfermedad: "NO" },
+      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA N°1", unidad: "P.A.C.I. 4TA. COM. CHACALLUTA", comuna: "ARICA", nombre: "ROSA EUSTAQUIA MAITA QUERQUEZANA", rut: "10.124.383-4", genero: "FEMENINO", edad: "62", jv: "COMUNIDAD INDIGENA DE VISVIRI", telefono: "982621441", transporte: "AEREO", empresa: "LATAM AIRLINES", vueloIda: "LA 187 / LA 59", fechaLlegada: "LUNES", horaLlegada: "14:30", vueloVuelta: "LA 256 / LA 188", fechaSalida: "JUEVES", horaSalida: "10:00", enfermedad: "NO TIENE" },
+      { zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE", nombre: "PABLO RAMON ORELLANA FLORES", rut: "5.450.476-4", genero: "MASCULINO", edad: "74", jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-90962137", transporte: "AEREO", empresa: "SKY", vueloIda: "IQUIQUE - SANTIAGO / SANTIAGO - PUERTO MONTT", fechaLlegada: "LUNES", horaLlegada: "12:00", vueloVuelta: "PUERTO MONTT - SANTIAGO / SANTIAGO - IQUIQUE", fechaSalida: "JUEVES", horaSalida: "16:00", enfermedad: "HIPERTENSIÓN" },
+      { zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE", nombre: "GLORIA MIGUELINA JERIA JIMENEZ", rut: "7.349.033-2", genero: "FEMENINA", edad: "69", jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-92283956", transporte: "AEREO", empresa: "SKY", vueloIda: "IQUIQUE - SANTIAGO / SANTIAGO - PUERTO MONTT", fechaLlegada: "LUNES", horaLlegada: "12:00", vueloVuelta: "PUERTO MONTT - SANTIAGO / SANTIAGO - IQUIQUE", fechaSalida: "JUEVES", horaSalida: "16:00", enfermedad: "HIPERTENSIÓN" },
+      { zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE", nombre: "HILDA BURGOS SILVA", rut: "6.435.195-8", genero: "FEMENINA", edad: "75", jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-90180072", transporte: "AEREO", empresa: "SKY", vueloIda: "IQUIQUE - SANTIAGO / SANTIAGO - PUERTO MONTT", fechaLlegada: "LUNES", horaLlegada: "12:00", vueloVuelta: "PUERTO MONTT - SANTIAGO / SANTIAGO - IQUIQUE", fechaSalida: "JUEVES", horaSalida: "16:00", enfermedad: "COLESTEROL" }
+    ];
+
+    let currentFilteredData = rawData;
     let chartInstances = {};
 
-    // Lee el archivo datos.csv que subiste al mismo repositorio de GitHub
-    const sheetCsvUrl = "datos.csv";
-
     document.addEventListener("DOMContentLoaded", function() {
-      cargarDatosGitHub();
-    });
-
-    function cargarDatosGitHub() {
-      document.getElementById("syncIcon").classList.add("fa-spin");
-      
-      Papa.parse(sheetCsvUrl, {
-        download: true,
-        header: false,
-        complete: function(results) {
-          document.getElementById("syncIcon").classList.remove("fa-spin");
-          procesarDatos(results.data);
-        },
-        error: function(err) {
-          document.getElementById("syncIcon").classList.remove("fa-spin");
-          alert("Error al cargar el archivo de datos: " + err.message);
-        }
-      });
-    }
-
-    function procesarDatos(filas) {
-      let parsed = [];
-      for(let i = 1; i < filas.length; i++) {
-        let cols = filas[i];
-        if(cols.length >= 10 && cols[5] && cols[5].trim() !== "") {
-          parsed.push({
-            zona: cols[1] ? cols[1].trim() : "",
-            prefectura: cols[2] ? cols[2].trim() : "",
-            unidad: cols[3] ? cols[3].trim() : "",
-            comuna: cols[4] ? cols[4].trim() : "",
-            nombre: cols[5] ? cols[5].trim() : "",
-            rut: cols[6] ? cols[6].trim() : "",
-            genero: cols[7] ? cols[7].trim() : "",
-            edad: cols[8] ? cols[8].trim() : "",
-            jv: cols[9] ? cols[9].trim() : "",
-            telefono: cols[10] ? cols[10].trim() : "",
-            transporte: cols[11] ? cols[11].trim() : "",
-            empresa: cols[12] ? cols[12].trim() : "",
-            vueloIda: cols[13] ? cols[13].trim() : "",
-            fechaLlegada: cols[14] ? cols[14].trim() : "",
-            horaLlegada: cols[15] ? cols[15].trim() : "",
-            vueloVuelta: cols[16] ? cols[16].trim() : "",
-            fechaSalida: cols[17] ? cols[17].trim() : "",
-            horaSalida: cols[18] ? cols[18].trim() : "",
-            enfermedad: cols[19] ? cols[19].trim().toUpperCase() : "NINGUNA"
-          });
-        }
-      }
-      rawData = parsed;
-      currentFilteredData = parsed;
       initDashboard(rawData);
-    }
+    });
 
     function initDashboard(data) {
       renderKPIs(data);
@@ -226,7 +164,7 @@
       let pctAereo = data.length > 0 ? Math.round((aereo / data.length) * 100) : 0;
       document.getElementById("kpi-transporte").innerHTML = `Aéreo: ${pctAereo}% (${aereo}) <br><span class="text-xs text-gray-500">Otros: ${100 - pctAereo}%</span>`;
 
-      let conEnfermedad = data.filter(d => !["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(d.enfermedad)).length;
+      let conEnfermedad = data.filter(d => !["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(d.enfermedad.toUpperCase())).length;
       let pctEnf = data.length > 0 ? Math.round((conEnfermedad / data.length) * 100) : 0;
       document.getElementById("kpi-enfermedad").innerText = `${conEnfermedad} (${pctEnf}%)`;
     }
@@ -258,7 +196,7 @@
 
       let enfMap = {};
       data.forEach(d => {
-        let e = d.enfermedad;
+        let e = d.enfermedad.trim().toUpperCase();
         if(!["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(e)) {
           enfMap[e] = (enfMap[e] || 0) + 1;
         }
@@ -294,7 +232,7 @@
         let tr = document.createElement("tr");
         tr.className = "hover:bg-emerald-50 cursor-pointer transition";
         tr.onclick = () => openModal(item);
-        let isSana = ["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(item.enfermedad);
+        let isSana = ["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(item.enfermedad.toUpperCase());
         let badgeEnf = isSana ? `<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Ninguna</span>` : `<span class="px-2 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs">${item.enfermedad}</span>`;
         tr.innerHTML = `
           <td class="p-3 font-semibold text-gray-800">${item.nombre}</td>
