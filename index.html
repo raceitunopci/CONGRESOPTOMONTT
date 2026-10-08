@@ -108,7 +108,7 @@
       <div class="relative h-64"><canvas id="chartEnfermedades"></canvas></div>
     </div>
     <div class="card p-6">
-      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-clock text-blue-500 no-print"></i> Flujo de Llegadas</h3>
+      <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-clock text-blue-500 no-print"></i> Flujo de Llegadas por Rango Horario</h3>
       <div class="relative h-64"><canvas id="chartHorarios"></canvas></div>
     </div>
   </div>
@@ -357,21 +357,60 @@
         }
       });
 
-      // 4. Horarios
-      let horMap = {};
+      // 4. Flujo de Llegadas por Rango Horario
+      let rangosHorarios = {
+        "Madrugada (00:00 - 05:59)": 0,
+        "Mañana (06:00 - 11:59)": 0,
+        "Tarde (12:00 - 18:59)": 0,
+        "Noche (19:00 - 23:59)": 0,
+        "Por Confirmar": 0
+      };
+
       data.forEach(d => {
-        let h = (d.fechaLlegada || d.horaLlegada) ? (d.fechaLlegada + " " + d.horaLlegada).trim() : "POR CONFIRMAR";
-        if(h === "") h = "POR CONFIRMAR";
-        horMap[h] = (horMap[h] || 0) + 1;
+        let horaStr = d.horaLlegada;
+        if (!horaStr) {
+          rangosHorarios["Por Confirmar"]++;
+        } else {
+          let partes = horaStr.split(":");
+          let horaNum = parseInt(partes[0], 10);
+          if (isNaN(horaNum)) {
+            rangosHorarios["Por Confirmar"]++;
+          } else if (horaNum >= 0 && horaNum < 6) {
+            rangosHorarios["Madrugada (00:00 - 05:59)"]++;
+          } else if (horaNum >= 6 && horaNum < 12) {
+            rangosHorarios["Mañana (06:00 - 11:59)"]++;
+          } else if (horaNum >= 12 && horaNum < 19) {
+            rangosHorarios["Tarde (12:00 - 18:59)"]++;
+          } else {
+            rangosHorarios["Noche (19:00 - 23:59)"]++;
+          }
+        }
       });
-      let sortedHorarios = Object.entries(horMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
+
+      let labelsRangos = Object.keys(rangosHorarios).filter(k => rangosHorarios[k] > 0);
+      let dataRangos = labelsRangos.map(k => rangosHorarios[k]);
+
       chartInstances.horarios = new Chart(document.getElementById('chartHorarios'), {
-        type: 'pie',
+        type: 'bar',
         data: { 
-          labels: sortedHorarios.map(h => h[0]), 
-          datasets: [{ data: sortedHorarios.map(h => h[1]), backgroundColor: ['#10b981', '#f59e0b', '#ec4899', '#6366f1', '#8b5cf6'] }] 
+          labels: labelsRangos, 
+          datasets: [{ 
+            label: 'Asistentes', 
+            data: dataRangos, 
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#6b7280'] 
+          }] 
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 }
+            }
+          }
+        }
       });
     }
 
