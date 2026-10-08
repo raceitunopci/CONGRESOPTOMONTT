@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Dirigentes Puerto Montt</title>
+  <title>Carabineros de Chile - Congreso de Dirigentes Vecinales</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.2s; }
+    .card-clickable { cursor: pointer; }
+    .card-clickable:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
     @media print {
       body { background-color: white; }
       .no-print { display: none !important; }
@@ -23,10 +25,14 @@
 
   <header class="mb-8 flex flex-col md:flex-row justify-between items-center bg-emerald-800 text-white p-6 rounded-xl shadow-lg">
     <div>
-      <h1 class="text-2xl md:text-3xl font-bold">Resumen de Asistencia - Puerto Montt</h1>
-      <p class="text-emerald-200 text-sm mt-1">Panel Operativo Oficial 🟢</p>
+      <p class="text-emerald-200 text-xs font-bold tracking-wider uppercase">Carabineros de Chile</p>
+      <h1 class="text-2xl md:text-3xl font-bold">Congreso de Dirigentes Vecinales - Puerto Montt</h1>
+      <p class="text-emerald-100 text-sm mt-1">Panel Operativo Oficial 🟢</p>
     </div>
     <div class="mt-4 md:mt-0 flex flex-wrap gap-3 no-print">
+      <button onclick="resetFiltros()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center gap-2 transition border border-emerald-600">
+        <i class="fa-solid fa-filter-circle-xmark"></i> Ver Todos
+      </button>
       <button onclick="exportarExcel()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center gap-2 transition">
         <i class="fa-solid fa-file-excel"></i> Excel
       </button>
@@ -36,45 +42,58 @@
     </div>
   </header>
 
+  <!-- TARJETAS DE METRICAS PRINCIPALES (INTERACTIVAS) -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="card p-5 border-l-4 border-emerald-600">
+    <!-- Total Asistentes -->
+    <div class="card card-clickable p-5 border-l-4 border-emerald-600" onclick="filtrarTablaGeneral('todos')">
       <div class="flex justify-between items-center">
         <div>
           <p class="text-xs font-semibold text-gray-500 uppercase">Total Asistentes</p>
-          <h2 id="kpi-total" class="text-3xl font-bold text-gray-800">--</h2>
+          <h2 id="kpi-total" class="text-3xl font-bold text-gray-800 mt-1">--</h2>
+          <p class="text-xs text-emerald-600 mt-1 font-medium"><i class="fa-solid fa-hand-pointer"></i> Clic para ver todos</p>
         </div>
         <div class="p-3 bg-emerald-100 rounded-full text-emerald-600 no-print"><i class="fa-solid fa-users text-2xl"></i></div>
       </div>
     </div>
-    <div class="card p-5 border-l-4 border-blue-500">
+
+    <!-- Género -->
+    <div class="card card-clickable p-5 border-l-4 border-blue-500" onclick="filtrarTablaGeneral('genero')">
       <div class="flex justify-between items-center">
-        <div>
-          <p class="text-xs font-semibold text-gray-500 uppercase">Género</p>
-          <p id="kpi-genero" class="text-sm font-bold text-gray-700 mt-1">Cargando...</p>
+        <div class="w-full">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Distribución de Género</p>
+          <div id="kpi-genero" class="text-xs font-bold text-gray-700 mt-1 space-y-1">Cargando...</div>
+          <p class="text-xs text-blue-600 mt-1 font-medium"><i class="fa-solid fa-hand-pointer"></i> Clic para detalle</p>
         </div>
-        <div class="p-3 bg-blue-100 rounded-full text-blue-600 no-print"><i class="fa-solid fa-venus-mars text-2xl"></i></div>
+        <div class="p-3 bg-blue-100 rounded-full text-blue-600 no-print ml-2"><i class="fa-solid fa-venus-mars text-xl"></i></div>
       </div>
     </div>
-    <div class="card p-5 border-l-4 border-purple-500">
+
+    <!-- Transporte -->
+    <div class="card card-clickable p-5 border-l-4 border-purple-500" onclick="filtrarTablaGeneral('transporte')">
       <div class="flex justify-between items-center">
-        <div>
-          <p class="text-xs font-semibold text-gray-500 uppercase">Transporte</p>
-          <p id="kpi-transporte" class="text-sm font-bold text-gray-700 mt-1">Cargando...</p>
+        <div class="w-full">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Medios de Transporte</p>
+          <div id="kpi-transporte" class="text-xs font-bold text-gray-700 mt-1 space-y-1">Cargando...</div>
+          <p class="text-xs text-purple-600 mt-1 font-medium"><i class="fa-solid fa-hand-pointer"></i> Clic para detalle</p>
         </div>
-        <div class="p-3 bg-purple-100 rounded-full text-purple-600 no-print"><i class="fa-solid fa-plane-departure text-2xl"></i></div>
+        <div class="p-3 bg-purple-100 rounded-full text-purple-600 no-print ml-2"><i class="fa-solid fa-plane-departure text-xl"></i></div>
       </div>
     </div>
-    <div class="card p-5 border-l-4 border-red-500">
+
+    <!-- Enfermedad Base -->
+    <div class="card card-clickable p-5 border-l-4 border-red-500" onclick="filtrarTablaGeneral('enfermedad')">
       <div class="flex justify-between items-center">
-        <div>
-          <p class="text-xs font-semibold text-gray-500 uppercase">Enfermedad Base</p>
-          <h2 id="kpi-enfermedad" class="text-3xl font-bold text-gray-800">--</h2>
+        <div class="w-full">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Enfermedades de Base</p>
+          <div id="kpi-enfermedad" class="text-xs font-bold text-gray-700 mt-1 space-y-1">Cargando...</div>
+          <p class="text-xs text-red-600 mt-1 font-medium"><i class="fa-solid fa-hand-pointer"></i> Clic para ver casos</p>
         </div>
-        <div class="p-3 bg-red-100 rounded-full text-red-600 no-print"><i class="fa-solid fa-notes-medical text-2xl"></i></div>
+        <div class="p-3 bg-red-100 rounded-full text-red-600 no-print ml-2"><i class="fa-solid fa-notes-medical text-xl"></i></div>
       </div>
     </div>
   </div>
 
+  <!-- SECCION DE GRAFICOS -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
     <div class="card p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-emerald-600 no-print"></i> Región / Zona</h3>
@@ -94,9 +113,13 @@
     </div>
   </div>
 
+  <!-- TABLA DE DETALLE INTERACTIVA -->
   <div class="card p-6 mb-8">
     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-      <h3 class="text-lg font-bold text-gray-800">Nómina Detallada</h3>
+      <div>
+        <h3 id="tablaTitulo" class="text-lg font-bold text-gray-800">Nómina Detallada General</h3>
+        <p id="tablaSubtitulo" class="text-xs text-gray-500">Mostrando todos los asistentes registrados</p>
+      </div>
       <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Buscar por Nombre, Rut, Comuna..." class="border p-2 rounded-lg w-full md:w-72 text-sm shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none no-print">
     </div>
     <div class="overflow-x-auto">
@@ -117,6 +140,7 @@
     </div>
   </div>
 
+  <!-- MODAL PARA VER DETALLE COMPLETO -->
   <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50 no-print">
     <div class="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
@@ -130,9 +154,8 @@
   </div>
 
   <script>
-    // Los datos se cargan automáticamente desde datos.csv
     let rawData = [];
-    let currentFilteredData = rawData;
+    let currentFilteredData = [];
     let chartInstances = {};
 
     document.addEventListener("DOMContentLoaded", async function() {
@@ -147,21 +170,11 @@
         }
 
         const textoCSV = await respuesta.text();
-
-        // SheetJS ya está cargado en esta página y puede interpretar CSV
-        const workbook = XLSX.read(textoCSV, {
-          type: "string",
-          raw: true,
-          cellDates: false
-        });
-
+        const workbook = XLSX.read(textoCSV, { type: "string", raw: true, cellDates: false });
         const hoja = workbook.Sheets[workbook.SheetNames[0]];
-        const filas = XLSX.utils.sheet_to_json(hoja, {
-          defval: "",
-          raw: true
-        });
+        const filas = XLSX.utils.sheet_to_json(hoja, { defval: "", raw: true });
 
-        rawData = filas.map((r, i) => ({
+        rawData = filas.map((r) => ({
           medio: String(r["MEDIO"] ?? "").trim(),
           zona: String(r["ZONA DE CARABINEROS"] ?? "").trim(),
           prefectura: String(r["PREFECTURA"] ?? "").trim(),
@@ -169,11 +182,11 @@
           comuna: String(r["COMUNA"] ?? "").trim(),
           nombre: String(r["NOMBRE COMPLETO DEL DIRIGENTE VECINAL"] ?? "").trim(),
           rut: String(r["CEDULA DE IDENTIDAD"] ?? "").trim(),
-          genero: String(r["GENERO"] ?? "").trim(),
+          genero: limpiarGenero(r["GENERO"]),
           edad: String(r["EDAD"] ?? "").trim(),
           jv: String(r["NOMBRE DE LA JUNTA DE VECINOS"] ?? "").trim(),
           telefono: String(r["TELEFONO CELULAR"] ?? "").trim(),
-          transporte: String(r["MEDIO DE TRASPORTE"] ?? "").trim(),
+          transporte: limpiarTransporte(r["MEDIO DE TRASPORTE"]),
           empresa: String(r["AEROLINEA O EMPRESA DE TRASPORTE"] ?? "").trim(),
           vueloIda: String(r["NUMERO DE VUELO O PASAJE DE IDA"] ?? "").trim(),
           fechaLlegada: convertirFecha(r["FECHA DE LLEGADA A PUERTO MONTT"]),
@@ -181,13 +194,11 @@
           vueloVuelta: String(r["NUMERO DE VUELO O PASAJE DE VUELTA"] ?? "").trim(),
           fechaSalida: convertirFecha(r["FECHA DE SALIDA DE PUERTO MONTT"]),
           horaSalida: convertirHora(r["HORA DE SALIDA DE PUERTO MONTT"]),
-          enfermedad: String(r["ENFERMEDAD DE BASE"] ?? "").trim()
+          enfermedadOriginal: String(r["ENFERMEDAD DE BASE"] ?? "").trim(),
+          enfermedad: limpiarEnfermedad(r["ENFERMEDAD DE BASE"])
         }));
 
         currentFilteredData = rawData;
-
-        console.log("Registros cargados:", rawData.length);
-
         initDashboard(rawData);
 
         if (rawData.length === 0) {
@@ -198,16 +209,36 @@
         document.getElementById("kpi-total").innerText = "ERROR";
         document.getElementById("tableBody").innerHTML =
           `<tr><td colspan="7" class="p-4 text-center text-red-600 font-semibold">
-            No se pudo cargar datos.csv.<br>
-            Verifique que index.html y datos.csv estén en la misma carpeta de GitHub.
+            No se pudo cargar datos.csv.<br>Verifique que index.html y datos.csv estén en la misma carpeta.
           </td></tr>`;
       }
     }
 
+    function limpiarGenero(g) {
+      let val = String(g || "").trim().toUpperCase();
+      if (val.includes("FEM")) return "FEMENINO";
+      if (val.includes("MASC") || val === "M") return "MASCULINO";
+      return "NO ESPECIFICADO";
+    }
+
+    function limpiarTransporte(t) {
+      let val = String(t || "").trim().toUpperCase();
+      if (val.includes("AEREO") || val.includes("AVION") || val.includes("AÉREO") || val.includes("VUELO")) return "AÉREO";
+      if (val.includes("BUS") || val.includes("TERR") || val.includes("INTERURBANO")) return "TERRESTRE / BUS";
+      if (val.includes("PART") || val.includes("PROP") || val.includes("AUTO") || val.includes("VEHIC")) return "PARTICULAR / PROPIO";
+      return val || "POR CONFIRMAR";
+    }
+
+    function limpiarEnfermedad(e) {
+      let val = String(e || "").trim().toUpperCase();
+      if (["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE", "SIN ENFERMEDAD", "NO PRESENTA", "NINGUNA."].includes(val)) {
+        return "NINGUNA";
+      }
+      return val;
+    }
+
     function convertirFecha(valor) {
       if (valor === null || valor === undefined || valor === "") return "";
-
-      // Fecha serial de Excel, por ejemplo 46338
       if (!isNaN(valor) && Number(valor) > 30000) {
         const fecha = new Date((Number(valor) - 25569) * 86400 * 1000);
         if (!isNaN(fecha.getTime())) {
@@ -216,23 +247,18 @@
                  fecha.getUTCFullYear();
         }
       }
-
       return String(valor).trim();
     }
 
     function convertirHora(valor) {
       if (valor === null || valor === undefined || valor === "") return "";
-
-      // Hora serial de Excel, por ejemplo 0,2673611111
       const numero = Number(String(valor).replace(",", "."));
       if (!isNaN(numero) && numero >= 0 && numero < 1) {
         const totalMinutos = Math.round(numero * 24 * 60);
         const horas = Math.floor(totalMinutos / 60) % 24;
         const minutos = totalMinutos % 60;
-        return String(horas).padStart(2, "0") + ":" +
-               String(minutos).padStart(2, "0");
+        return String(horas).padStart(2, "0") + ":" + String(minutos).padStart(2, "0");
       }
-
       return String(valor).trim();
     }
 
@@ -244,58 +270,94 @@
 
     function renderKPIs(data) {
       document.getElementById("kpi-total").innerText = data.length;
-      let hombres = data.filter(d => d.genero.toUpperCase().includes("MASCULINO") || d.genero.toUpperCase() === "M").length;
-      let mujeres = data.filter(d => d.genero.toUpperCase().includes("FEMENIN") || d.genero.toUpperCase() === "F").length;
-      let pctMujeres = data.length > 0 ? Math.round((mujeres / data.length) * 100) : 0;
-      document.getElementById("kpi-genero").innerHTML = `${mujeres} Mujeres (${pctMujeres}%) <br><span class="text-xs text-gray-500">${hombres} Hombres</span>`;
 
-      let aereo = data.filter(d => d.transporte.toUpperCase().includes("AEREO") || d.transporte.toUpperCase().includes("AVION") || d.transporte.toUpperCase().includes("AÉREO")).length;
-      let pctAereo = data.length > 0 ? Math.round((aereo / data.length) * 100) : 0;
-      document.getElementById("kpi-transporte").innerHTML = `Aéreo: ${pctAereo}% (${aereo}) <br><span class="text-xs text-gray-500">Otros: ${100 - pctAereo}%</span>`;
+      // Género
+      let femenino = data.filter(d => d.genero === "FEMENINO").length;
+      let masculino = data.filter(d => d.genero === "MASCULINO").length;
+      let pctFem = data.length > 0 ? Math.round((femenino / data.length) * 100) : 0;
+      let pctMasc = data.length > 0 ? Math.round((masculino / data.length) * 100) : 0;
+      
+      document.getElementById("kpi-genero").innerHTML = `
+        <div class="flex justify-between"><span>Femenino:</span> <span class="font-bold">${femenino} (${pctFem}%)</span></div>
+        <div class="flex justify-between"><span>Masculino:</span> <span class="font-bold">${masculino} (${pctMasc}%)</span></div>
+      `;
 
-      let conEnfermedad = data.filter(d => !["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(d.enfermedad.toUpperCase())).length;
-      let pctEnf = data.length > 0 ? Math.round((conEnfermedad / data.length) * 100) : 0;
-      document.getElementById("kpi-enfermedad").innerText = `${conEnfermedad} (${pctEnf}%)`;
+      // Transporte
+      let transMap = {};
+      data.forEach(d => { transMap[d.transporte] = (transMap[d.transporte] || 0) + 1; });
+      let transHtml = "";
+      Object.entries(transMap).sort((a,b) => b[1] - a[1]).slice(0, 3).forEach(([key, val]) => {
+        let pct = data.length > 0 ? Math.round((val / data.length) * 100) : 0;
+        transHtml += `<div class="flex justify-between text-xs"><span class="truncate pr-1">${key}:</span> <span class="font-bold">${val} (${pct}%)</span></div>`;
+      });
+      document.getElementById("kpi-transporte").innerHTML = transHtml || "Sin datos";
+
+      // Enfermedad
+      let conEnf = data.filter(d => d.enfermedad !== "NINGUNA").length;
+      let sinEnf = data.length - conEnf;
+      let pctEnf = data.length > 0 ? Math.round((conEnf / data.length) * 100) : 0;
+      let pctSin = data.length > 0 ? Math.round((sinEnf / data.length) * 100) : 0;
+
+      document.getElementById("kpi-enfermedad").innerHTML = `
+        <div class="flex justify-between"><span>Con Patología:</span> <span class="font-bold text-red-600">${conEnf} (${pctEnf}%)</span></div>
+        <div class="flex justify-between"><span>Sin Patología:</span> <span class="font-bold text-emerald-600">${sinEnf} (${pctSin}%)</span></div>
+      `;
     }
 
     function renderCharts(data) {
       Object.values(chartInstances).forEach(chart => chart.destroy());
 
+      // 1. Región / Zona
       let regMap = {};
       data.forEach(d => { if(d.zona) regMap[d.zona] = (regMap[d.zona] || 0) + 1; });
       chartInstances.regiones = new Chart(document.getElementById('chartRegiones'), {
         type: 'bar',
-        data: { labels: Object.keys(regMap), datasets: [{ label: 'Dirigentes', data: Object.values(regMap), backgroundColor: '#059669' }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      let transMap = {};
-      data.forEach(d => {
-        let t = d.transporte.toUpperCase();
-        if(t.includes("AEREO") || t.includes("AVION") || t.includes("AÉREO")) t = "AÉREO";
-        else if(t.includes("BUS")) t = "BUS/TERRESTRE";
-        else t = "OTRO";
-        transMap[t] = (transMap[t] || 0) + 1;
-      });
-      chartInstances.transporte = new Chart(document.getElementById('chartTransporte'), {
-        type: 'doughnut',
-        data: { labels: Object.keys(transMap), datasets: [{ data: Object.values(transMap), backgroundColor: ['#3b82f6', '#8b5cf6', '#6b7280'] }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      let enfMap = {};
-      data.forEach(d => {
-        let e = d.enfermedad.trim().toUpperCase();
-        if(!["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(e)) {
-          enfMap[e] = (enfMap[e] || 0) + 1;
+        data: { 
+          labels: Object.keys(regMap), 
+          datasets: [{ label: 'Dirigentes', data: Object.values(regMap), backgroundColor: '#059669' }] 
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
         }
       });
-      chartInstances.enfermedades = new Chart(document.getElementById('chartEnfermedades'), {
-        type: 'bar',
-        data: { labels: Object.keys(enfMap), datasets: [{ label: 'Casos Registrados', data: Object.values(enfMap), backgroundColor: '#ef4444' }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+
+      // 2. Transporte
+      let transMap = {};
+      data.forEach(d => { transMap[d.transporte] = (transMap[d.transporte] || 0) + 1; });
+      chartInstances.transporte = new Chart(document.getElementById('chartTransporte'), {
+        type: 'doughnut',
+        data: { 
+          labels: Object.keys(transMap), 
+          datasets: [{ data: Object.values(transMap), backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#6b7280'] }] 
+        },
+        options: { responsive: true, maintainAspectRatio: false }
       });
 
+      // 3. Enfermedades
+      let enfMap = {};
+      data.forEach(d => {
+        if(d.enfermedad !== "NINGUNA") {
+          enfMap[d.enfermedad] = (enfMap[d.enfermedad] || 0) + 1;
+        }
+      });
+      let sortedEnf = Object.entries(enfMap).sort((a,b) => b[1] - a[1]).slice(0, 6);
+      chartInstances.enfermedades = new Chart(document.getElementById('chartEnfermedades'), {
+        type: 'bar',
+        data: { 
+          labels: sortedEnf.map(e => e[0]), 
+          datasets: [{ label: 'Casos', data: sortedEnf.map(e => e[1]), backgroundColor: '#ef4444' }] 
+        },
+        options: { 
+          indexAxis: 'y', 
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // 4. Horarios
       let horMap = {};
       data.forEach(d => {
         let h = (d.fechaLlegada || d.horaLlegada) ? (d.fechaLlegada + " " + d.horaLlegada).trim() : "POR CONFIRMAR";
@@ -305,9 +367,36 @@
       let sortedHorarios = Object.entries(horMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
       chartInstances.horarios = new Chart(document.getElementById('chartHorarios'), {
         type: 'pie',
-        data: { labels: sortedHorarios.map(h => h[0]), datasets: [{ data: sortedHorarios.map(h => h[1]), backgroundColor: ['#10b981', '#f59e0b', '#ec4899', '#6366f1', '#8b5cf6'] }] },
+        data: { 
+          labels: sortedHorarios.map(h => h[0]), 
+          datasets: [{ data: sortedHorarios.map(h => h[1]), backgroundColor: ['#10b981', '#f59e0b', '#ec4899', '#6366f1', '#8b5cf6'] }] 
+        },
         options: { responsive: true, maintainAspectRatio: false }
       });
+    }
+
+    function filtrarTablaGeneral(tipo) {
+      if (tipo === 'todos') {
+        currentFilteredData = rawData;
+        document.getElementById("tablaSubtitulo").innerText = "Mostrando todos los asistentes registrados";
+      } else if (tipo === 'genero') {
+        currentFilteredData = rawData;
+        document.getElementById("tablaSubtitulo").innerText = "Mostrando desglose completo por género";
+      } else if (tipo === 'transporte') {
+        currentFilteredData = rawData;
+        document.getElementById("tablaSubtitulo").innerText = "Mostrando desglose completo por transporte";
+      } else if (tipo === 'enfermedad') {
+        currentFilteredData = rawData.filter(d => d.enfermedad !== "NINGUNA");
+        document.getElementById("tablaSubtitulo").innerText = "Mostrando únicamente asistentes con patologías base registradas";
+      }
+      renderTable(currentFilteredData);
+    }
+
+    function resetFiltros() {
+      currentFilteredData = rawData;
+      document.getElementById("searchInput").value = "";
+      document.getElementById("tablaSubtitulo").innerText = "Mostrando todos los asistentes registrados";
+      renderTable(rawData);
     }
 
     function renderTable(data) {
@@ -321,8 +410,11 @@
         let tr = document.createElement("tr");
         tr.className = "hover:bg-emerald-50 cursor-pointer transition";
         tr.onclick = () => openModal(item);
-        let isSana = ["NO", "NO TIENE", "NINGUNA", "NO MANTIENE", "", "NO MANTUIENE"].includes(item.enfermedad.toUpperCase());
-        let badgeEnf = isSana ? `<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Ninguna</span>` : `<span class="px-2 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs">${item.enfermedad}</span>`;
+        let isSana = item.enfermedad === "NINGUNA";
+        let badgeEnf = isSana 
+          ? `<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">Ninguna</span>` 
+          : `<span class="px-2 py-1 bg-red-100 text-red-700 font-semibold rounded-full text-xs">${item.enfermedadOriginal}</span>`;
+
         tr.innerHTML = `
           <td class="p-3 font-semibold text-gray-800">${item.nombre}</td>
           <td class="p-3">${item.rut}</td>
@@ -368,7 +460,7 @@
         <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">N° Vuelo/Pasaje Ida:</strong> ${item.vueloIda}</div>
         <div class="bg-gray-50 p-3 rounded"><strong class="text-gray-700">N° Vuelo/Pasaje Vuelta:</strong> ${item.vueloVuelta} (Salida: ${item.fechaSalida} ${item.horaSalida})</div>
         <div class="bg-red-50 p-3 rounded col-span-1 md:col-span-2 border-l-4 border-red-500">
-          <strong class="text-red-700">Enfermedad de Base:</strong> ${item.enfermedad}
+          <strong class="text-red-700">Enfermedad de Base:</strong> ${item.enfermedadOriginal}
         </div>
       `;
       document.getElementById("modalContent").innerHTML = content;
