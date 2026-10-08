@@ -130,22 +130,111 @@
   </div>
 
   <script>
-    const rawData = [
-      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "2DA. COM. PUTRE", comuna: "PUTRE", nombre: "ALICIA CONDORI FLORES", rut: "7.856.945-K", genero: "FEMENINO", edad: "67", jv: "NACE CHILE NRO.15", telefono: "9-85858998", transporte: "AEREO", empresa: "LATAM", vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "", vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "", enfermedad: "DIABETES" },
-      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "3RA. COM. ARICA", comuna: "ARICA", nombre: "EDELCIRA CASTRO ROJAS", rut: "11.341.696-3", genero: "FEMENINO", edad: "57", jv: "J.V. N° 3, BANDERA", telefono: "9-56785791", transporte: "AEREO", empresa: "POR CONFIRMAR", vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "", vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "", enfermedad: "PITIRIASIS RUBRA PILARES" },
-      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA", unidad: "3RA. COM. ARICA", comuna: "ARICA", nombre: "YASMINA DEL PILAR VASQUEZ FLORES", rut: "12.056.564-8", genero: "FEMENINO", edad: "52", jv: "COMUNIDAD INDIGENA VALLE DE CHACA", telefono: "9-88134324", transporte: "AEREO", empresa: "POR CONFIRMAR", vueloIda: "POR CONFIRMAR", fechaLlegada: "POR CONFIRMAR", horaLlegada: "", vueloVuelta: "POR CONFIRMAR", fechaSalida: "POR CONFIRMAR", horaSalida: "", enfermedad: "NO" },
-      { zona: "ARICA Y PARINACOTA", prefectura: "ARICA N°1", unidad: "P.A.C.I. 4TA. COM. CHACALLUTA", comuna: "ARICA", nombre: "ROSA EUSTAQUIA MAITA QUERQUEZANA", rut: "10.124.383-4", genero: "FEMENINO", edad: "62", jv: "COMUNIDAD INDIGENA DE VISVIRI", telefono: "982621441", transporte: "AEREO", empresa: "LATAM AIRLINES", vueloIda: "LA 187 / LA 59", fechaLlegada: "LUNES", horaLlegada: "14:30", vueloVuelta: "LA 256 / LA 188", fechaSalida: "JUEVES", horaSalida: "10:00", enfermedad: "NO TIENE" },
-      { zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE", nombre: "PABLO RAMON ORELLANA FLORES", rut: "5.450.476-4", genero: "MASCULINO", edad: "74", jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-90962137", transporte: "AEREO", empresa: "SKY", vueloIda: "IQUIQUE - SANTIAGO / SANTIAGO - PUERTO MONTT", fechaLlegada: "LUNES", horaLlegada: "12:00", vueloVuelta: "PUERTO MONTT - SANTIAGO / SANTIAGO - IQUIQUE", fechaSalida: "JUEVES", horaSalida: "16:00", enfermedad: "HIPERTENSIÓN" },
-      { zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE", nombre: "GLORIA MIGUELINA JERIA JIMENEZ", rut: "7.349.033-2", genero: "FEMENINA", edad: "69", jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-92283956", transporte: "AEREO", empresa: "SKY", vueloIda: "IQUIQUE - SANTIAGO / SANTIAGO - PUERTO MONTT", fechaLlegada: "LUNES", horaLlegada: "12:00", vueloVuelta: "PUERTO MONTT - SANTIAGO / SANTIAGO - IQUIQUE", fechaSalida: "JUEVES", horaSalida: "16:00", enfermedad: "HIPERTENSIÓN" },
-      { zona: "TARAPACÁ", prefectura: "IQUIQUE", unidad: "1RA. COM. IQUIQUE", comuna: "IQUIQUE", nombre: "HILDA BURGOS SILVA", rut: "6.435.195-8", genero: "FEMENINA", edad: "75", jv: "AGRUPACION JJ.VV. POR LA SEGURIDAD", telefono: "9-90180072", transporte: "AEREO", empresa: "SKY", vueloIda: "IQUIQUE - SANTIAGO / SANTIAGO - PUERTO MONTT", fechaLlegada: "LUNES", horaLlegada: "12:00", vueloVuelta: "PUERTO MONTT - SANTIAGO / SANTIAGO - IQUIQUE", fechaSalida: "JUEVES", horaSalida: "16:00", enfermedad: "COLESTEROL" }
-    ];
-
+    // Los datos se cargan automáticamente desde datos.csv
+    let rawData = [];
     let currentFilteredData = rawData;
     let chartInstances = {};
 
-    document.addEventListener("DOMContentLoaded", function() {
-      initDashboard(rawData);
+    document.addEventListener("DOMContentLoaded", async function() {
+      await cargarDatosCSV();
     });
+
+    async function cargarDatosCSV() {
+      try {
+        const respuesta = await fetch("./datos.csv", { cache: "no-store" });
+        if (!respuesta.ok) {
+          throw new Error("No se pudo cargar datos.csv. HTTP " + respuesta.status);
+        }
+
+        const textoCSV = await respuesta.text();
+
+        // SheetJS ya está cargado en esta página y puede interpretar CSV
+        const workbook = XLSX.read(textoCSV, {
+          type: "string",
+          raw: true,
+          cellDates: false
+        });
+
+        const hoja = workbook.Sheets[workbook.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json(hoja, {
+          defval: "",
+          raw: true
+        });
+
+        rawData = filas.map((r, i) => ({
+          medio: String(r["MEDIO"] ?? "").trim(),
+          zona: String(r["ZONA DE CARABINEROS"] ?? "").trim(),
+          prefectura: String(r["PREFECTURA"] ?? "").trim(),
+          unidad: String(r["UNIDAD"] ?? "").trim(),
+          comuna: String(r["COMUNA"] ?? "").trim(),
+          nombre: String(r["NOMBRE COMPLETO DEL DIRIGENTE VECINAL"] ?? "").trim(),
+          rut: String(r["CEDULA DE IDENTIDAD"] ?? "").trim(),
+          genero: String(r["GENERO"] ?? "").trim(),
+          edad: String(r["EDAD"] ?? "").trim(),
+          jv: String(r["NOMBRE DE LA JUNTA DE VECINOS"] ?? "").trim(),
+          telefono: String(r["TELEFONO CELULAR"] ?? "").trim(),
+          transporte: String(r["MEDIO DE TRASPORTE"] ?? "").trim(),
+          empresa: String(r["AEROLINEA O EMPRESA DE TRASPORTE"] ?? "").trim(),
+          vueloIda: String(r["NUMERO DE VUELO O PASAJE DE IDA"] ?? "").trim(),
+          fechaLlegada: convertirFecha(r["FECHA DE LLEGADA A PUERTO MONTT"]),
+          horaLlegada: convertirHora(r["HORA DE LLEGADA A PUERTO MONTT"]),
+          vueloVuelta: String(r["NUMERO DE VUELO O PASAJE DE VUELTA"] ?? "").trim(),
+          fechaSalida: convertirFecha(r["FECHA DE SALIDA DE PUERTO MONTT"]),
+          horaSalida: convertirHora(r["HORA DE SALIDA DE PUERTO MONTT"]),
+          enfermedad: String(r["ENFERMEDAD DE BASE"] ?? "").trim()
+        }));
+
+        currentFilteredData = rawData;
+
+        console.log("Registros cargados:", rawData.length);
+
+        initDashboard(rawData);
+
+        if (rawData.length === 0) {
+          alert("datos.csv está vacío.");
+        }
+      } catch (error) {
+        console.error("Error cargando datos.csv:", error);
+        document.getElementById("kpi-total").innerText = "ERROR";
+        document.getElementById("tableBody").innerHTML =
+          `<tr><td colspan="7" class="p-4 text-center text-red-600 font-semibold">
+            No se pudo cargar datos.csv.<br>
+            Verifique que index.html y datos.csv estén en la misma carpeta de GitHub.
+          </td></tr>`;
+      }
+    }
+
+    function convertirFecha(valor) {
+      if (valor === null || valor === undefined || valor === "") return "";
+
+      // Fecha serial de Excel, por ejemplo 46338
+      if (!isNaN(valor) && Number(valor) > 30000) {
+        const fecha = new Date((Number(valor) - 25569) * 86400 * 1000);
+        if (!isNaN(fecha.getTime())) {
+          return String(fecha.getUTCDate()).padStart(2, "0") + "/" +
+                 String(fecha.getUTCMonth() + 1).padStart(2, "0") + "/" +
+                 fecha.getUTCFullYear();
+        }
+      }
+
+      return String(valor).trim();
+    }
+
+    function convertirHora(valor) {
+      if (valor === null || valor === undefined || valor === "") return "";
+
+      // Hora serial de Excel, por ejemplo 0,2673611111
+      const numero = Number(String(valor).replace(",", "."));
+      if (!isNaN(numero) && numero >= 0 && numero < 1) {
+        const totalMinutos = Math.round(numero * 24 * 60);
+        const horas = Math.floor(totalMinutos / 60) % 24;
+        const minutos = totalMinutos % 60;
+        return String(horas).padStart(2, "0") + ":" +
+               String(minutos).padStart(2, "0");
+      }
+
+      return String(valor).trim();
+    }
 
     function initDashboard(data) {
       renderKPIs(data);
@@ -250,10 +339,10 @@
     function filterTable() {
       let query = document.getElementById("searchInput").value.toLowerCase();
       currentFilteredData = rawData.filter(d => 
-        d.nombre.toLowerCase().includes(query) ||
-        d.rut.toLowerCase().includes(query) ||
-        d.comuna.toLowerCase().includes(query) ||
-        d.zona.toLowerCase().includes(query)
+        String(d.nombre).toLowerCase().includes(query) ||
+        String(d.rut).toLowerCase().includes(query) ||
+        String(d.comuna).toLowerCase().includes(query) ||
+        String(d.zona).toLowerCase().includes(query)
       );
       renderTable(currentFilteredData);
     }
